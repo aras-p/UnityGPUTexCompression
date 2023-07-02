@@ -5,14 +5,21 @@ using UnityEngine.Rendering;
 public class TestGPUTexCompression : MonoBehaviour
 {
     public Texture m_SourceTexture;
+    public EncodeBCn.Format m_Format = EncodeBCn.Format.BC1;
+    [Range(0, 1)] public float m_Quality = 0.25f;
     public ComputeShader m_EncodeShader;
     public ComputeShader m_RMSEShader;
-    private RenderTexture m_TempTexture;
+
+    private EncodeBCn m_Encoder;
     private Texture2D m_DestTexture;
     private CommandBuffer m_Cmd;
+
     private Vector2 m_RMSE = Vector2.zero;
     private GraphicsBuffer m_RMSEBuffer1;
     private GraphicsBuffer m_RMSEBuffer2;
+
+    private EncodeBCn.Format m_CurFormat = EncodeBCn.Format.None;
+    private float m_CurQuality = -1;
 
     public void Start()
     {
@@ -21,47 +28,68 @@ public class TestGPUTexCompression : MonoBehaviour
             Debug.LogWarning($"Source texture is null or not 2D");
             return;
         }
+        m_Encoder = new EncodeBCn(m_EncodeShader);
 
-        int width = m_SourceTexture.width;
-        int height = m_SourceTexture.height;
-        width = (width + 3) / 4 * 4;
-        height = (height + 3) / 4 * 4;
-        m_DestTexture = new Texture2D(width, height, GraphicsFormat.RGBA_DXT5_SRGB,
-            TextureCreationFlags.DontInitializePixels | TextureCreationFlags.DontUploadUponCreate)
-        {
-            name = "BCn Compression Target"
-        };
-        m_DestTexture.Apply(false, true);
+        UpdateDestTexture();
 
-        m_TempTexture = new RenderTexture(width / 4, height / 4, GraphicsFormat.R32G32B32A32_SInt, GraphicsFormat.None)
-        {
-            name = "BCn Compression Temp",
-            enableRandomWrite = true,
-        };
-        
         m_Cmd = new CommandBuffer();
         m_Cmd.name = "GPU BCn Compression";
-        m_Cmd.SetComputeTextureParam(m_EncodeShader, 0, "_Source", m_SourceTexture);
-        m_Cmd.SetComputeTextureParam(m_EncodeShader, 0, "_Target", m_TempTexture);
-        m_Cmd.DispatchCompute(m_EncodeShader, 0, m_TempTexture.width, m_TempTexture.height, 1);
-        m_Cmd.CopyTexture(m_TempTexture, 0, m_DestTexture, 0);
-        m_Cmd.Blit(m_DestTexture, new RenderTargetIdentifier(BuiltinRenderTextureType.CurrentActive));
+        UpdateCommandBuffer();
         Camera.main.AddCommandBuffer(CameraEvent.AfterForwardAlpha, m_Cmd);
     }
 
     public void OnDestroy()
     {
         DestroyImmediate(m_DestTexture);
-        DestroyImmediate(m_TempTexture);
         m_Cmd?.Dispose(); m_Cmd = null; 
         m_RMSEBuffer1?.Dispose(); m_RMSEBuffer1 = null;
         m_RMSEBuffer2?.Dispose(); m_RMSEBuffer2 = null;
+    }
+
+    void UpdateCommandBuffer()
+    {
+        m_Cmd.Clear();
+        m_Encoder.Encode(m_Cmd, m_SourceTexture, m_SourceTexture.width, m_SourceTexture.height, m_DestTexture, m_Format, m_Quality);
+        m_Cmd.Blit(m_DestTexture, new RenderTargetIdentifier(BuiltinRenderTextureType.CurrentActive));
+    }
+
+    void UpdateDestTexture()
+    {
+        int width = m_SourceTexture.width;
+        int height = m_SourceTexture.height;
+        if (m_Format != EncodeBCn.Format.None)
+        {
+            width = (width + 3) / 4 * 4;
+            height = (height + 3) / 4 * 4;
+        }
+
+        GraphicsFormat gfxFormat = m_Format switch
+        {
+            EncodeBCn.Format.None => m_SourceTexture.graphicsFormat,
+            EncodeBCn.Format.BC1 => GraphicsFormat.RGBA_DXT1_SRGB,
+            EncodeBCn.Format.BC3 => GraphicsFormat.RGBA_DXT5_SRGB,
+            _ => GraphicsFormat.None
+        };
+        m_DestTexture = new Texture2D(width, height, gfxFormat,
+            TextureCreationFlags.DontInitializePixels | TextureCreationFlags.DontUploadUponCreate)
+        {
+            name = "BCn Compression Target"
+        };
+        m_DestTexture.Apply(false, true);
     }
 
     public void Update()
     {
         if (m_DestTexture == null || m_RMSEShader == null)
             return;
+        
+        if (m_Quality != m_CurQuality || m_Format != m_CurFormat)
+        {
+            UpdateDestTexture();
+            UpdateCommandBuffer();
+            m_CurQuality = m_Quality;
+            m_CurFormat = m_Format;
+        }
 
         int rmseFactor = 128;
         int bufferSize1 = m_SourceTexture.width * m_SourceTexture.height / rmseFactor;

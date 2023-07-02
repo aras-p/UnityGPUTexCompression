@@ -633,6 +633,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_SourceTexture: {fileID: 8400000, guid: 17741c07cfd6f4c29860a6143c77cae1, type: 2}
+  m_Format: 1
+  m_Quality: 0.25
   m_EncodeShader: {fileID: 7200000, guid: 876d69c76537649d180b4cc47db2d35c, type: 3}
   m_RMSEShader: {fileID: 7200000, guid: 32471e8bf4ae541af82c44f322796de2, type: 3}
 --- !u!4 &2065864546
