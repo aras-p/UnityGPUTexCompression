@@ -1,0 +1,9 @@
+/.idea/*
+/Library/*
+/Temp/*
+/UserSettings/*
+/*.sln
+/*.csproj
+/Logs/*
+/obj/*
+.DS_Store

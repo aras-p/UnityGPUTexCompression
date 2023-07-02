@@ -1,0 +1,74 @@
+#pragma kernel RMSCalculate
+#pragma kernel RMSReduce
+#pragma use_dxc metal vulkan
+
+#define kRMSGroupSize 64
+
+#define kTexelsPerGroup (kRMSGroupSize * 2)
+
+uint _TextureWidth;
+Texture2D _TextureA;
+Texture2D _TextureB;
+RWStructuredBuffer<float2> _BufferInput;
+RWStructuredBuffer<float2> _BufferOutput;
+
+groupshared float2 gs_RMSE[kRMSGroupSize]; // squared errors for RGB & A
+
+// Input: _TextureWidth, _TextureA, _TextureB.
+// Output: _BufferOutput.
+// Each thread reads two texels; one group processes 128 texels.
+[numthreads(kRMSGroupSize, 1, 1)]
+void RMSCalculate(
+    uint2 threadID : SV_DispatchThreadID,
+    uint2 groupID : SV_GroupID,
+    uint threadIndexInGroup : SV_GroupIndex)
+{
+    // Load two neighboring texels and compute error
+    uint3 pos = uint3(threadID.x * 2, threadID.y, 0);
+    float4 colA = _TextureA.Load(pos);
+    float4 colB = _TextureB.Load(pos);
+    float4 err0 = (colA - colB) * 255.0;
+    colA = _TextureA.Load(pos, int2(1, 0));
+    colB = _TextureB.Load(pos, int2(1, 0));
+    float4 err1 = (colA - colB) * 255.0;
+
+    // Compute squared (RGB, A) error sum for this pair of texels
+    float errRGB = dot(err0.rgb, err0.rgb) + dot(err1.rgb, err1.rgb);
+    float errA = err0.a*err0.a + err1.a*err1.a;
+    float2 err = float2(errRGB, errA);
+    gs_RMSE[threadIndexInGroup] = err;
+
+    GroupMemoryBarrierWithGroupSync();
+
+    // Make the first thread sum up all the error values and output
+    if (threadIndexInGroup == 0)
+    {
+        for (uint i = 1; i < kRMSGroupSize; ++i)
+            err += gs_RMSE[threadIndexInGroup + i];
+        uint idx = groupID.y * (_TextureWidth / kTexelsPerGroup) + groupID.x;
+        _BufferOutput[idx] = err;
+    }
+}
+
+[numthreads(kRMSGroupSize, 1, 1)]
+void RMSReduce(
+    uint threadID : SV_DispatchThreadID,
+    uint groupID : SV_GroupID,
+    uint threadIndexInGroup : SV_GroupIndex)
+{
+    // Load error values into local store (sum up two elements
+    // for each thread)
+    uint pos = threadID * 2;
+    float2 err = _BufferInput[pos] + _BufferInput[pos+1];
+    gs_RMSE[threadIndexInGroup] = err;
+
+    GroupMemoryBarrierWithGroupSync();
+
+    // Make first thread sum up all the error values and output
+    if (threadIndexInGroup == 0)
+    {
+        for (uint i = 1; i < kRMSGroupSize; ++i)
+            err += gs_RMSE[threadIndexInGroup + i];
+        _BufferOutput[groupID] = err;
+    }
+}

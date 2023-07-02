@@ -1,0 +1,29 @@
+#pragma kernel EncodeBC3
+
+#define ASPM_GPU
+#define ASPM_HLSL
+#include "External/AMD_Compressonator/bcn_common_kernel.h"
+
+Texture2D _Source;
+RWTexture2D<uint4> _Target;
+
+
+[numthreads(64, 1, 1)]
+void EncodeBC3(uint2 dtid : SV_DispatchThreadID)
+{
+    // load 4x4 pixel block
+    float3 colors[16];
+    float alphas[16];
+    uint2 coord = dtid.xy << 2;
+    for (uint i = 0; i < 16; ++i)
+    {
+        uint2 offs = uint2(i & 3, i >> 2);
+        float4 pix = _Source.Load(uint3(coord + offs, 0));
+        colors[i] = pix.rgb;
+        alphas[i] = pix.a;
+    }
+
+    // encode block
+    uint4 block = CompressBlockBC3_UNORM(colors, alphas, 0.0f, true);
+    _Target[dtid] = block;
+}
