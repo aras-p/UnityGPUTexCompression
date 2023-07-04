@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: TexGradient
+  m_Name: TexGradient2
   m_Shader: {fileID: 4800000, guid: fe2d1da6dffcf4653ab3ed0d242e25c1, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -44,7 +44,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: 9464e719047c34926995a97235334ecf, type: 3}
+        m_Texture: {fileID: 2800000, guid: a6b49341d64a47f4e9f4e9091f50a067, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:

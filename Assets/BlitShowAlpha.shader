@@ -44,11 +44,11 @@ Shader "Unlit/Blit Copy Show Alpha"
                 
                 float diag = i.uv.x * 2;
                 if (diag >= 0.8 && diag < 1.0)
-                    col.rgb = abs(col.rgb - src.rgb) * 4;
+                    col.rgb = abs(col.rgb - src.rgb) * 2;
                 if (diag >= 1.0 && diag < 1.2)
                     col.rgb = col.a;
                 if (diag >= 1.2 && diag < 1.4)
-                    col.rgb = abs(col.a - src.a) * 4;
+                    col.rgb = abs(col.a - src.a) * 2;
                 return col;
             }
             ENDCG

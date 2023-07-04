@@ -12,6 +12,8 @@ public class TestGPUTexCompression : MonoBehaviour
     public ComputeShader m_EncodeShader;
     public ComputeShader m_RMSEShader;
     public Material m_BlitMaterial;
+    public Transform m_ObjectToRotate;
+    public bool m_Rotate = true;
 
     private EncodeBCn m_Encoder;
     private Texture2D m_DestTexture;
@@ -149,8 +151,25 @@ public class TestGPUTexCompression : MonoBehaviour
             m_CurFormat = m_Format;
         }
 
+        RotateObjects();
+
         CalculateFrameTimes();
         CalculateRMSE();
+    }
+
+    void RotateObjects()
+    {
+        if (m_ObjectToRotate == null)
+            return;
+        if (m_Rotate)
+        {
+            var rot = Time.deltaTime * 10.0f;
+            m_ObjectToRotate.Rotate(0, rot, 0, Space.World);
+        }
+        else
+        {
+            m_ObjectToRotate.localRotation = Quaternion.identity;
+        }
     }
 
     void CalculateFrameTimes()
@@ -194,6 +213,9 @@ public class TestGPUTexCompression : MonoBehaviour
         int quality = Mathf.RoundToInt(m_Quality * 10);
         m_Quality = GUI.HorizontalSlider(new Rect(60, 45, 100, 20), quality, 0, 10) / 10.0f;
         DrawLabelWithOutline(new Rect(170, 40, 100, 20), new GUIContent(m_Quality.ToString("F1")));
+
+        // rotate checkbox
+        m_Rotate = GUI.Toggle(new Rect(300, 40, 100, 20), m_Rotate, "Rotate Objects");
         
         // stats
         var label = $"{m_SourceTexture.width}x{m_SourceTexture.height} {m_Format} q={m_Quality:F1}\nRMSE: RGB {m_RMSE.x:F3}, {m_RMSE.y:F3}\nFrame time: {m_AvgFrameTime:F3}ms ({SystemInfo.graphicsDeviceName} on {SystemInfo.graphicsDeviceType})";
