@@ -1,9 +1,7 @@
-#pragma kernel EncodeBC1 TARGET_UINT2
-#pragma kernel EncodeBC3
-
-#define ASPM_GPU
-#define ASPM_HLSL
-#include "External/AMD_Compressonator/bcn_common_kernel.h"
+#pragma kernel EncodeBC1_AMD USE_AMD_CODE TARGET_UINT2
+#pragma kernel EncodeBC1_XDK USE_XDK_CODE TARGET_UINT2
+#pragma kernel EncodeBC3_AMD USE_AMD_CODE TARGET_UINT4
+#pragma kernel EncodeBC3_XDK USE_XDK_CODE TARGET_UINT4
 
 Texture2D _Source;
 #ifdef TARGET_UINT2
@@ -13,43 +11,101 @@ RWTexture2D<uint4> _Target;
 #endif
 float _Quality;
 
-#ifdef TARGET_UINT2
-[numthreads(64, 1, 1)]
-void EncodeBC1(uint2 dtid : SV_DispatchThreadID)
+void LoadTexelBlockRGB(Texture2D tex, uint2 tid, out float3 rgb[16])
 {
-    // load 4x4 pixel block
-    float3 colors[16];
-    uint2 coord = dtid.xy << 2;
+    uint2 coord = tid.xy << 2;
     for (uint i = 0; i < 16; ++i)
     {
         uint2 offs = uint2(i & 3, i >> 2);
-        float4 pix = _Source.Load(uint3(coord + offs, 0));
-        colors[i] = pix.rgb;
+        float4 pix = tex.Load(uint3(coord + offs, 0));
+        rgb[i] = pix.rgb;
     }
+}
 
-    // encode block
+void LoadTexelBlockRGBA(Texture2D tex, uint2 tid, out float3 rgb[16], out float alpha[16])
+{
+    uint2 coord = tid.xy << 2;
+    for (uint i = 0; i < 16; ++i)
+    {
+        uint2 offs = uint2(i & 3, i >> 2);
+        float4 pix = tex.Load(uint3(coord + offs, 0));
+        rgb[i] = pix.rgb;
+        alpha[i] = pix.a;
+    }
+}
+
+
+#if defined(USE_AMD_CODE)
+
+#define ASPM_GPU
+#define ASPM_HLSL
+#include "External/AMD_Compressonator/bcn_common_kernel.h"
+
+#if defined(TARGET_UINT2)
+[numthreads(64, 1, 1)]
+void EncodeBC1_AMD(uint2 dtid : SV_DispatchThreadID)
+{
+    float3 colors[16];
+    LoadTexelBlockRGB(_Source, dtid, colors);
     uint2 block = CompressBlockBC1_UNORM(colors, _Quality, true);
     _Target[dtid] = block;
 }
 #endif
 
-
+#if defined(TARGET_UINT4)
 [numthreads(64, 1, 1)]
-void EncodeBC3(uint2 dtid : SV_DispatchThreadID)
+void EncodeBC3_AMD(uint2 dtid : SV_DispatchThreadID)
 {
-    // load 4x4 pixel block
     float3 colors[16];
     float alphas[16];
-    uint2 coord = dtid.xy << 2;
-    for (uint i = 0; i < 16; ++i)
-    {
-        uint2 offs = uint2(i & 3, i >> 2);
-        float4 pix = _Source.Load(uint3(coord + offs, 0));
-        colors[i] = pix.rgb;
-        alphas[i] = pix.a;
-    }
-
-    // encode block
+    LoadTexelBlockRGBA(_Source, dtid, colors, alphas);
     uint4 block = CompressBlockBC3_UNORM(colors, alphas, _Quality, true);
     _Target[dtid] = block;
 }
+#endif
+
+#endif
+
+
+#if defined(USE_XDK_CODE)
+
+half3 LinearToSRGB(half3 linRGB)
+{
+    // from https://chilliant.blogspot.com/2012/08/srgb-approximations-for-hlsl.html
+    return max(1.055h * pow(linRGB, 0.416666667h) - 0.055h, 0.h);
+}
+
+void LinearToSRGB(inout float3 rgb[16])
+{
+    for (int i = 0; i < 16; ++i)
+        rgb[i] = LinearToSRGB(rgb[i]);
+}
+
+#include "External/FastBlockCompress/BlockCompress.hlsli"
+
+#if defined(TARGET_UINT2)
+[numthreads(64, 1, 1)]
+void EncodeBC1_XDK(uint2 dtid : SV_DispatchThreadID)
+{
+    float3 colors[16];
+    LoadTexelBlockRGB(_Source, dtid, colors);
+    LinearToSRGB(colors);
+    uint2 block = CompressBC1Block(colors);
+    _Target[dtid] = block;
+}
+#endif
+
+#if defined(TARGET_UINT4)
+[numthreads(64, 1, 1)]
+void EncodeBC3_XDK(uint2 dtid : SV_DispatchThreadID)
+{
+    float3 colors[16];
+    float alphas[16];
+    LoadTexelBlockRGBA(_Source, dtid, colors, alphas);
+    LinearToSRGB(colors);
+    uint4 block = CompressBC3Block(colors, alphas, 1.0f);
+    _Target[dtid] = block;
+}
+#endif
+
+#endif

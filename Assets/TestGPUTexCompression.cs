@@ -7,7 +7,7 @@ using UnityEngine.Rendering;
 public class TestGPUTexCompression : MonoBehaviour
 {
     public Texture m_SourceTexture;
-    public EncodeBCn.Format m_Format = EncodeBCn.Format.BC1;
+    public EncodeBCn.Format m_Format = EncodeBCn.Format.BC3_AMD;
     [Range(0, 1)] public float m_Quality = 0.25f;
     public ComputeShader m_EncodeShader;
     public ComputeShader m_RMSEShader;
@@ -78,8 +78,10 @@ public class TestGPUTexCompression : MonoBehaviour
         GraphicsFormat gfxFormat = m_Format switch
         {
             EncodeBCn.Format.None => m_SourceTexture.graphicsFormat,
-            EncodeBCn.Format.BC1 => GraphicsFormat.RGBA_DXT1_SRGB,
-            EncodeBCn.Format.BC3 => GraphicsFormat.RGBA_DXT5_SRGB,
+            EncodeBCn.Format.BC1_AMD => GraphicsFormat.RGBA_DXT1_SRGB,
+            EncodeBCn.Format.BC1_XDK => GraphicsFormat.RGBA_DXT1_SRGB,
+            EncodeBCn.Format.BC3_AMD => GraphicsFormat.RGBA_DXT5_SRGB,
+            EncodeBCn.Format.BC3_XDK => GraphicsFormat.RGBA_DXT5_SRGB,
             _ => GraphicsFormat.None
         };
         m_DestTexture = new Texture2D(width, height, gfxFormat,
@@ -141,7 +143,7 @@ public class TestGPUTexCompression : MonoBehaviour
     {
         FrameTimingManager.CaptureFrameTimings();
         FrameTimingManager.GetLatestTimings(1, m_FrameTimings);
-        m_CpuTimesAccum += (float) m_FrameTimings[0].cpuFrameTime;
+        m_CpuTimesAccum += (float)m_FrameTimings[0].cpuFrameTime;
         m_GpuTimesAccum += (float)m_FrameTimings[0].gpuFrameTime;
         m_FramesAccum++;
         if (m_GpuTimesAccum > 500 || m_CpuTimesAccum > 500)
@@ -154,10 +156,10 @@ public class TestGPUTexCompression : MonoBehaviour
         
         GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(2,2,2));
         
-        GUI.Box(new Rect(5, 5, 310, 120), GUIContent.none, GUI.skin.window);
+        GUI.Box(new Rect(5, 5, 510, 120), GUIContent.none, GUI.skin.window);
 
         // format
-        m_Format = (EncodeBCn.Format)GUI.Toolbar(new Rect(10, 10, 300, 20), (int)m_Format, m_FormatLabels);
+        m_Format = (EncodeBCn.Format)GUI.Toolbar(new Rect(10, 10, 500, 20), (int)m_Format, m_FormatLabels);
         
         // quality slider
         DrawLabelWithOutline(new Rect(10, 40, 100, 20), new GUIContent("Quality"));
@@ -166,7 +168,7 @@ public class TestGPUTexCompression : MonoBehaviour
         DrawLabelWithOutline(new Rect(170, 40, 100, 20), new GUIContent(m_Quality.ToString("F1")));
         
         // stats
-        var label = $"{m_SourceTexture.width}x{m_SourceTexture.height} {m_Format} q={m_Quality:F1}\nRMSE: RGB {m_RMSE.x:F3}, {m_RMSE.y:F3}\nGPU time: {m_AvgGpuTime:F2}ms ({SystemInfo.graphicsDeviceName} on {SystemInfo.graphicsDeviceType})";
+        var label = $"{m_SourceTexture.width}x{m_SourceTexture.height} {m_Format} q={m_Quality:F1}\nRMSE: RGB {m_RMSE.x:F3}, {m_RMSE.y:F3}\nGPU time: {m_AvgGpuTime:F3}ms ({SystemInfo.graphicsDeviceName} on {SystemInfo.graphicsDeviceType})";
         var rect = new Rect(10, 70, 600, 60);
         DrawLabelWithOutline(rect, new GUIContent(label));
     }

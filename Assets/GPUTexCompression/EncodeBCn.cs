@@ -8,8 +8,10 @@ public class EncodeBCn
     public enum Format
     {
         None,
-        BC1,
-        BC3,
+        BC1_AMD,
+        BC1_XDK,
+        BC3_AMD,
+        BC3_XDK,
     }
     
     static readonly int s_Prop_Source = Shader.PropertyToID("_Source");
@@ -18,15 +20,19 @@ public class EncodeBCn
     static readonly int s_Prop_EncodeBCn_Temp = Shader.PropertyToID("_EncodeBCn_Temp");
 
     private ComputeShader m_EncodeShader;
-    private int m_EncodeKernelBC1;
-    private int m_EncodeKernelBC3;
+    private int m_EncodeKernelBC1_AMD;
+    private int m_EncodeKernelBC1_XDK;
+    private int m_EncodeKernelBC3_AMD;
+    private int m_EncodeKernelBC3_XDK;
 
     public EncodeBCn(ComputeShader encodeShader)
     {
         Assert.IsNotNull(encodeShader);
         m_EncodeShader = encodeShader;
-        m_EncodeKernelBC1 = m_EncodeShader.FindKernel("EncodeBC1");
-        m_EncodeKernelBC3 = m_EncodeShader.FindKernel("EncodeBC3");
+        m_EncodeKernelBC1_AMD = m_EncodeShader.FindKernel("EncodeBC1_AMD");
+        m_EncodeKernelBC1_XDK = m_EncodeShader.FindKernel("EncodeBC1_XDK");
+        m_EncodeKernelBC3_AMD = m_EncodeShader.FindKernel("EncodeBC3_AMD");
+        m_EncodeKernelBC3_XDK = m_EncodeShader.FindKernel("EncodeBC3_XDK");
     }
 
     public void Encode(CommandBuffer cmb,
@@ -45,12 +51,24 @@ public class EncodeBCn
         {
             width = tempWidth,
             height = tempHeight,
-            graphicsFormat = format == Format.BC1 ? GraphicsFormat.R32G32_SInt : GraphicsFormat.R32G32B32A32_SInt,
             dimension = TextureDimension.Tex2D,
             enableRandomWrite = true,
             msaaSamples = 1
         };
-        int kernelIndex = format == Format.BC1 ? m_EncodeKernelBC1 : m_EncodeKernelBC3;
+        int kernelIndex = format switch
+        {
+            Format.BC1_AMD => m_EncodeKernelBC1_AMD,
+            Format.BC1_XDK => m_EncodeKernelBC1_XDK,
+            Format.BC3_AMD => m_EncodeKernelBC3_AMD,
+            Format.BC3_XDK => m_EncodeKernelBC3_XDK,
+            _ => -1
+        };
+        desc.graphicsFormat = format switch
+        {
+            Format.BC1_AMD => GraphicsFormat.R32G32_SInt,
+            Format.BC1_XDK => GraphicsFormat.R32G32_SInt,
+            _ => GraphicsFormat.R32G32B32A32_SInt
+        };
         cmb.GetTemporaryRT(s_Prop_EncodeBCn_Temp, desc);
         cmb.SetComputeFloatParam(m_EncodeShader, s_Prop_Quality, quality);
         cmb.SetComputeTextureParam(m_EncodeShader, kernelIndex, s_Prop_Source, source);
