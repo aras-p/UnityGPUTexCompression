@@ -69,11 +69,12 @@ public class EncodeBCn
             Format.BC1_XDK => GraphicsFormat.R32G32_SInt,
             _ => GraphicsFormat.R32G32B32A32_SInt
         };
+        m_EncodeShader.GetKernelThreadGroupSizes(kernelIndex, out var sizeX, out var sizeY, out var sizeZ);
         cmb.GetTemporaryRT(s_Prop_EncodeBCn_Temp, desc);
         cmb.SetComputeFloatParam(m_EncodeShader, s_Prop_Quality, quality);
         cmb.SetComputeTextureParam(m_EncodeShader, kernelIndex, s_Prop_Source, source);
         cmb.SetComputeTextureParam(m_EncodeShader, kernelIndex, s_Prop_Target, s_Prop_EncodeBCn_Temp);
-        cmb.DispatchCompute(m_EncodeShader, kernelIndex, tempWidth, tempHeight, 1);
+        cmb.DispatchCompute(m_EncodeShader, kernelIndex, (int)((tempWidth + sizeX - 1) / sizeX), (int)((tempHeight + sizeY - 1) / sizeY), 1);
         cmb.CopyTexture(s_Prop_EncodeBCn_Temp, 0, target, 0);
         cmb.ReleaseTemporaryRT(s_Prop_EncodeBCn_Temp);
     }
