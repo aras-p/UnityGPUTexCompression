@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -9,6 +11,7 @@ public class TestGPUTexCompression : MonoBehaviour
     [Range(0, 1)] public float m_Quality = 0.25f;
     public ComputeShader m_EncodeShader;
     public ComputeShader m_RMSEShader;
+    public Material m_BlitMaterial;
 
     private EncodeBCn m_Encoder;
     private Texture2D m_DestTexture;
@@ -20,6 +23,15 @@ public class TestGPUTexCompression : MonoBehaviour
 
     private EncodeBCn.Format m_CurFormat = EncodeBCn.Format.None;
     private float m_CurQuality = -1;
+
+    private GUIContent[] m_FormatLabels =
+        ((EncodeBCn.Format[]) Enum.GetValues(typeof(EncodeBCn.Format))).Select(f => new GUIContent(f.ToString())).ToArray();
+    
+    readonly FrameTiming[] m_FrameTimings = new FrameTiming[1];
+    private float m_GpuTimesAccum = 0;
+    private float m_CpuTimesAccum = 0;
+    private int m_FramesAccum = 0;
+    private float m_AvgGpuTime = 0;
 
     public void Start()
     {
@@ -50,7 +62,7 @@ public class TestGPUTexCompression : MonoBehaviour
     {
         m_Cmd.Clear();
         m_Encoder.Encode(m_Cmd, m_SourceTexture, m_SourceTexture.width, m_SourceTexture.height, m_DestTexture, m_Format, m_Quality);
-        m_Cmd.Blit(m_DestTexture, new RenderTargetIdentifier(BuiltinRenderTextureType.CurrentActive));
+        m_Cmd.Blit(m_DestTexture, new RenderTargetIdentifier(BuiltinRenderTextureType.CurrentActive), m_BlitMaterial);
     }
 
     void UpdateDestTexture()
@@ -125,16 +137,48 @@ public class TestGPUTexCompression : MonoBehaviour
         m_RMSE.y = Mathf.Sqrt(err.y / (m_SourceTexture.width * m_SourceTexture.height));
     }
 
-    public void OnGUI()
+    void OnGUI()
     {
+        FrameTimingManager.CaptureFrameTimings();
+        FrameTimingManager.GetLatestTimings(1, m_FrameTimings);
+        m_CpuTimesAccum += (float) m_FrameTimings[0].cpuFrameTime;
+        m_GpuTimesAccum += (float)m_FrameTimings[0].gpuFrameTime;
+        m_FramesAccum++;
+        if (m_GpuTimesAccum > 500 || m_CpuTimesAccum > 500)
+        {
+            m_AvgGpuTime = m_GpuTimesAccum / m_FramesAccum;
+            m_CpuTimesAccum = 0.0f;
+            m_GpuTimesAccum = 0.0f;
+            m_FramesAccum = 0;
+        }
+        
         GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(2,2,2));
-        var label = $"RMSE: {m_RMSE.x:F3}, {m_RMSE.y:F3}";
-        var rect = new Rect(5, 5, 400, 20);
+        
+        GUI.Box(new Rect(5, 5, 310, 120), GUIContent.none, GUI.skin.window);
+
+        // format
+        m_Format = (EncodeBCn.Format)GUI.Toolbar(new Rect(10, 10, 300, 20), (int)m_Format, m_FormatLabels);
+        
+        // quality slider
+        DrawLabelWithOutline(new Rect(10, 40, 100, 20), new GUIContent("Quality"));
+        int quality = Mathf.RoundToInt(m_Quality * 10);
+        m_Quality = GUI.HorizontalSlider(new Rect(60, 45, 100, 20), quality, 0, 10) / 10.0f;
+        DrawLabelWithOutline(new Rect(170, 40, 100, 20), new GUIContent(m_Quality.ToString("F1")));
+        
+        // stats
+        var label = $"{m_SourceTexture.width}x{m_SourceTexture.height} {m_Format} q={m_Quality:F1}\nRMSE: RGB {m_RMSE.x:F3}, {m_RMSE.y:F3}\nGPU time: {m_AvgGpuTime:F2}ms ({SystemInfo.graphicsDeviceName} on {SystemInfo.graphicsDeviceType})";
+        var rect = new Rect(10, 70, 600, 60);
+        DrawLabelWithOutline(rect, new GUIContent(label));
+    }
+
+    static void DrawLabelWithOutline(Rect rect, GUIContent label)
+    {
         GUI.color = Color.black;
-        GUI.Label(rect, label);
-        rect.x -= 2;
-        rect.y -= 2;
+        rect.x -= 1; rect.y -= 1; GUI.Label(rect, label);
+        rect.x += 2; GUI.Label(rect, label);
+        rect.y += 2; GUI.Label(rect, label);
+        rect.x -= 2; GUI.Label(rect, label);
         GUI.color = Color.white;
-        GUI.Label(rect, label);
+        rect.x += 1; rect.y -= 1; GUI.Label(rect, label);
     }
 }
