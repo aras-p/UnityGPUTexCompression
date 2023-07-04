@@ -1,6 +1,10 @@
 # Realtime DXT/BCn compression, in Unity, on the GPU
 
-Small testbed to see how compute shaders can be used to do texture compression _on the GPU_ in Unity. Basically the steps are as such:
+Small testbed to see how compute shaders can be used to do texture compression _on the GPU_ in Unity.
+
+![Screenshot](/screenshot.png?raw=true "Screenshot")
+
+Basically the steps are as such:
 
 1. Input is any 2D texture (regular texture, render texture etc.) that the GPU can sample.
 2. We'll need a temporary `RenderTexture` that is 4x smaller than the destination texture on each axis, i.e. each "pixel" in it is one BCn block.
