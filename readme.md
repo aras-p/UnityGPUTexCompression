@@ -29,46 +29,23 @@ the difference (multiplied 2x) between original and compressed, as well as alpha
 
 Actual GPU texture compressors are just code taken from external projects, under `GPUTexCompression/External`:
 
-* `AMD_Compressonator`: [AMD Compressonator](https://github.com/GPUOpen-Tools/compressonator/tree/master/cmp_core/shaders), rev 7d929e9 (2023 Jan 26). BC1 and BC3
+* `AMD_Compressonator`: [AMD Compressonator](https://github.com/GPUOpen-Tools/compressonator/tree/master/cmp_core/shaders), rev 7d929e9 (2023 Jan 26), MIT license. BC1 and BC3
   compression with a tunable quality level.
 * `FastBlockCompress`: [Microsoft Xbox ATG](https://github.com/microsoft/Xbox-ATG-Samples/tree/main/XDKSamples/Graphics/FastBlockCompress/Shaders), rev 180fa6d
-  (2018 Dec 14). BC1 and BC3 compression (ignores quality setting).
+  (2018 Dec 14), MIT license. BC1 and BC3 compression (ignores quality setting).
 
-GeForce 3080 Ti, D3D11:
+Timings for compression of 1280x720 image into BC3 format on several configurations I tried:
 
-* Base frame time 0.95ms
-* BC3 XDK: 0.96ms, RMSE 3.877, 2.006
-* BC3 AMD q 0.0-0.5: 0.96ms, RMSE 3.562, 2.006
-* BC3 AMD q 0.6-0.7: 0.96ms, RMSE 2.817, 2.006
-* BC3 AMD q 0.8-1.0: 3.96ms, RMSE 2.544, 1.534
+|  | GeForce 3080 Ti (D3D11, D3D12, Vulkan) | Apple M1 Max (Metal) |
+|:--- |:--- |:--- |
+|XDK  | 0.01ms, RMSE 3.877, 2.006 | 0.01ms, RMSE 3.865, 1.994 |
+|AMD q<0.5 | 0.01ms, RMSE 3.562, 2.006 | 0.17ms, RMSE 3.563, 1.994 |
+|AMD q<0.8 | 0.01ms, RMSE 2.817, 2.006 | 0.83ms, RMSE 2.819, 1.994 |
+|AMD q<=1  | 3.10ms, RMSE 2.544, 1.534 | 117ms😲, RMSE 2.544, 1.524 |
 
-GeForce 3080 Ti, Vulkan:
-
-* Base frame time 1.04ms
-* BC3 XDK: 1.05ms, RMSE 3.877, 2.006
-* BC3 AMD q 0.0-0.5: 1.05ms, RMSE 3.562, 2.006
-* BC3 AMD q 0.6-0.7: 1.05ms, RMSE 2.817, 2.006
-* BC3 AMD q 0.8-1.0: 3.23ms, RMSE 2.544, 1.534
-
-GeForce 3080 Ti, D3D12:
-
-* Base frame time 0.92ms
-* BC3 XDK: 0.94ms, RMSE 3.877, 2.006
-* BC3 AMD q 0.0-0.5: 0.93ms, RMSE 3.562, 2.006
-* BC3 AMD q 0.6-0.7: 0.94ms, RMSE 2.817, 2.006
-* BC3 AMD q 0.8-1.0: 3.94ms, RMSE 2.544, 1.534
-
-
-Apple M1 Max:
-
-* Base frame time 0.93ms
-* BC3 XDK: 0.94ms, RMSE 3.865, 1.994
-* BC3 AMD q 0.0-0.5: 1.10ms, RMSE 3.563, 1.994
-* BC3 AMD q 0.6-0.7: 1.76ms, RMSE 2.819, 1.994
-* BC3 AMD q 0.8-1.0: 118ms (!!), RMSE 2.544, 1.524
-
-Using newer DXC compiler on the BCn compression shader gives a "Metal: Error creating compute pipeline state: Compiler encountered an internal error"
-and does not work :(
+On Apple/Metal the AMD compressor at "high" quality level is _astonishingly_ slow when using the default (FXC) HLSL shader compiler. However, switching
+to a more modern DXC shader compiler `#pragma use_dxc metal` does not work at all, gives a "Error creating compute pipeline state: Compiler
+encountered an internal error" failure when the compute shader is actually used. Fun!
 
 
 
