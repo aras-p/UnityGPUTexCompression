@@ -42,7 +42,7 @@ void LoadTexelBlockRGBA(Texture2D tex, uint2 tid, out float3 rgb[16], out float 
 #include "External/AMD_Compressonator/bcn_common_kernel.h"
 
 #if defined(TARGET_UINT2)
-[numthreads(64, 1, 1)]
+[numthreads(8, 8, 1)]
 void EncodeBC1_AMD(uint2 dtid : SV_DispatchThreadID)
 {
     float3 colors[16];
@@ -53,7 +53,7 @@ void EncodeBC1_AMD(uint2 dtid : SV_DispatchThreadID)
 #endif
 
 #if defined(TARGET_UINT4)
-[numthreads(64, 1, 1)]
+[numthreads(8, 8, 1)]
 void EncodeBC3_AMD(uint2 dtid : SV_DispatchThreadID)
 {
     float3 colors[16];
@@ -84,7 +84,7 @@ void LinearToSRGB(inout float3 rgb[16])
 #include "External/FastBlockCompress/BlockCompress.hlsli"
 
 #if defined(TARGET_UINT2)
-[numthreads(64, 1, 1)]
+[numthreads(8, 8, 1)]
 void EncodeBC1_XDK(uint2 dtid : SV_DispatchThreadID)
 {
     float3 colors[16];
@@ -96,7 +96,7 @@ void EncodeBC1_XDK(uint2 dtid : SV_DispatchThreadID)
 #endif
 
 #if defined(TARGET_UINT4)
-[numthreads(64, 1, 1)]
+[numthreads(8, 8, 1)]
 void EncodeBC3_XDK(uint2 dtid : SV_DispatchThreadID)
 {
     float3 colors[16];
