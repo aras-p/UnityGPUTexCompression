@@ -11,10 +11,12 @@ Small testbed to see how compute shaders can be used to do texture compression _
    flags to save some time, and call `Apply(false, true)` on it; the last argument ditches the CPU side memory copy.
 4. A compute shader reads input texture from step 1, does {whatever GPU texture compression you do}, and writes into the "one pixel per BCn block"
    temporary texture from step 2.
-5. Now we must copy from temporary "one pixel per BCn block" texture (step 2) into actual destination texture (step 3). Graphics.CopyTexture or CommandBuffer.CopyTexture
-   with just source and destination textures *will not work* (since that one checks "does width and height match", which they don't - they differ 4x on each axis).
-   But, Graphics.CopyTexture (or CommandBuffer equivalent) that takes `srcElement` and `dstElement` arguments (zeroes for the largest mip level) *does work*!
-6. Profit!
+5. Now we must copy from temporary "one pixel per BCn block" texture (step 2) into actual destination texture (step 3). `Graphics.CopyTexture`
+   or `CommandBuffer.CopyTexture` with just source and destination textures *will not work* (since that one checks "does width and height match",
+   which they don't - they differ 4x on each axis).
+   But, `Graphics.CopyTexture` (or CommandBuffer equivalent) that takes `srcElement` and `dstElement` arguments (zeroes for the largest mip level)
+   *does work*!
+7. Profit!
 
 
 Actual BCn compressor codes are from other projects, under `GPUTexCompression/External`:
