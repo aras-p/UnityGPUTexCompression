@@ -34,6 +34,10 @@ Actual GPU texture compressors are just code taken from external projects, under
 * `FastBlockCompress`: [Microsoft Xbox ATG](https://github.com/microsoft/Xbox-ATG-Samples/tree/main/XDKSamples/Graphics/FastBlockCompress/Shaders), rev 180fa6d
   (2018 Dec 14), MIT license. BC1 and BC3 compression (ignores quality setting).
 
+It is extremely likely that better real-time compute shader texture compressors are possible, the two above are just the ones I found that were already written in HLSL. There's also [Betsy](https://github.com/darksylinc/betsy) but that one is written in GLSL, and possibly some others. This example is not so much about compressor
+itself, but rather "how to plug that into Unity".
+
+
 Timings for compression of 1280x720 image into BC3 format on several configurations I tried:
 
 |  | GeForce 3080 Ti (D3D11, D3D12, Vulkan) | Apple M1 Max (Metal) |
