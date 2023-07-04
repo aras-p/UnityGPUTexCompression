@@ -34,3 +34,17 @@ Actual GPU texture compressors are just code taken from external projects, under
 * `FastBlockCompress`: [Microsoft Xbox ATG](https://github.com/microsoft/Xbox-ATG-Samples/tree/main/XDKSamples/Graphics/FastBlockCompress/Shaders), rev 180fa6d
   (2018 Dec 14). BC1 and BC3 compression (ignores quality setting).
 
+
+Apple M1 Max:
+
+* Base frame time 0.93ms
+* BC3 XDK: 0.94ms, RMSE 3.865, 1.994
+* BC3 AMD q 0.0-0.5: 1.10ms, RMSE 3.563, 1.994
+* BC3 AMD q 0.6-0.7: 1.76ms, RMSE 2.819, 1.994
+* BC3 AMD q 0.8-1.0: 118ms (!!), RMSE 2.544, 1.524
+
+Using newer DXC compiler on the BCn compression shader gives a "Metal: Error creating compute pipeline state: Compiler encountered an internal error"
+and does not work :(
+
+
+
