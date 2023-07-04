@@ -34,6 +34,30 @@ Actual GPU texture compressors are just code taken from external projects, under
 * `FastBlockCompress`: [Microsoft Xbox ATG](https://github.com/microsoft/Xbox-ATG-Samples/tree/main/XDKSamples/Graphics/FastBlockCompress/Shaders), rev 180fa6d
   (2018 Dec 14). BC1 and BC3 compression (ignores quality setting).
 
+GeForce 3080 Ti, D3D11:
+
+* Base frame time 0.95ms
+* BC3 XDK: 0.96ms, RMSE 3.877, 2.006
+* BC3 AMD q 0.0-0.5: 0.96ms, RMSE 3.562, 2.006
+* BC3 AMD q 0.6-0.7: 0.96ms, RMSE 2.817, 2.006
+* BC3 AMD q 0.8-1.0: 3.96ms, RMSE 2.544, 1.534
+
+GeForce 3080 Ti, Vulkan:
+
+* Base frame time 1.04ms
+* BC3 XDK: 1.05ms, RMSE 3.877, 2.006
+* BC3 AMD q 0.0-0.5: 1.05ms, RMSE 3.562, 2.006
+* BC3 AMD q 0.6-0.7: 1.05ms, RMSE 2.817, 2.006
+* BC3 AMD q 0.8-1.0: 3.23ms, RMSE 2.544, 1.534
+
+GeForce 3080 Ti, D3D12:
+
+* Base frame time 0.92ms
+* BC3 XDK: 0.94ms, RMSE 3.877, 2.006
+* BC3 AMD q 0.0-0.5: 0.93ms, RMSE 3.562, 2.006
+* BC3 AMD q 0.6-0.7: 0.94ms, RMSE 2.817, 2.006
+* BC3 AMD q 0.8-1.0: 3.94ms, RMSE 2.544, 1.534
+
 
 Apple M1 Max:
 
